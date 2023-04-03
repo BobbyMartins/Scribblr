@@ -52,7 +52,7 @@ CORS(app)
 
 
 project = "837887193312"
-endpoint_id = "5744745944990089216"
+
 location = "us-west1"
 
 endpoint_name = f'projects/{project}/locations/{location}/endpoints/{endpoint_id}'
