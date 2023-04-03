@@ -134,7 +134,6 @@ submitButton.addEventListener('click', function() {
     });
 });
 
-const accessKey = 'SJyBPrlXtXCJtzYCEDl7H19fFY30Uck7LExL1ukMatI';
 
 // Get a picture from Unsplash based on a word
 function display_results(results) {
