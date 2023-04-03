@@ -173,39 +173,3 @@ async function playAudio(word) {
         console.log(err);
     }
 }
-
-
-
-let fileInput = document.getElementById('fileInput');
-
-// Listen for changes to the file input element
-fileInput.addEventListener('change', (event) => {
-    // Get the uploaded file
-    const file = event.target.files[0];
-    let url = URL.createObjectURL(file);
-
-    let img = new Image();
-    img.src = url;
-    img.onload = () => {
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        tempCtx.drawImage(img, 0, 0);
-        const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
-        const src = cv.matFromImageData(imageData);
-        const gray = new cv.Mat();
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        const threshold = new cv.Mat();
-        cv.threshold(gray, threshold, 100, 255, cv.THRESH_BINARY);
-        const morph = new cv.Mat();
-        cv.morphologyEx(threshold, morph, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3)));
-        cv.imshow('canvas', morph);
-        src.delete();
-        gray.delete();
-        threshold.delete();
-        morph.delete();
-    }
-});
-
-
