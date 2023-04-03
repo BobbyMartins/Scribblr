@@ -1,13 +1,13 @@
 import base64
 from typing import Tuple
-from PIL import PngImagePlugin, Image, ImageOps, ImageFilter
+from PIL import PngImagePlugin, Image, ImageOps
 from io import BytesIO
 import numpy as np
-from tensorflow.keras.utils import img_to_array
+from tensorflow.keras.utils import img_to_array 
 import cv2
+from tensorflow.keras.utils import to_categorical
 
 image_dims: Tuple[int, int] = (28, 28)
-
 
 def _handle_base64_string_header(base64_img_string: str) -> str:
     """Handle the extra base64 string header (data:image/png;base64,).
@@ -58,8 +58,7 @@ def resize_image(image: PngImagePlugin.PngImageFile) -> Image.Image:
     Returns:
         Image.Image: The resized image.
     """
-    img = image.resize((100, 100), resample=Image.LANCZOS)
-    return img.resize(image_dims, resample=Image.LANCZOS).filter(ImageFilter.SHARPEN)
+    return image.resize(image_dims)
 
 
 def invert_image(image: Image.Image) -> Image.Image:
@@ -71,7 +70,7 @@ def invert_image(image: Image.Image) -> Image.Image:
     Returns:
         Image.Image: The inverted image.
     """
-    return ImageOps.autocontrast(ImageOps.invert(image.convert("RGB")))
+    return ImageOps.invert(image.convert("RGB"))
 
 
 def image_to_numpy_array(image: Image.Image) -> np.ndarray:
@@ -98,16 +97,6 @@ def convert_to_grayscale(image_array: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
 
 
-def dilate_image(image: np.ndarray) -> np.ndarray:
-    """
-    Dilates drawing
-    :param image:
-    :return:
-    """
-    kernel = np.ones((3, 3), np.uint8)
-    return cv2.dilate(image, kernel).astype(np.uint8)
-
-
 def add_dims_to_array(image: np.ndarray) -> np.ndarray:
     """Adds 2 extra dimensions to the image array.
     The 1st dimension indicates the number of images per sample.
@@ -124,7 +113,7 @@ def add_dims_to_array(image: np.ndarray) -> np.ndarray:
     )  # Add last channel as 1 (28, 28) to (28, 28, 1)
     return np.expand_dims(
         img_grayscale_channeled, axis=0
-    )  # Add first channel to specify number of input images (1, 28, 28, 1)
+    )  # Add frist channel to specify number of input images (1, 28, 28, 1)
 
 
 def normalize_pixel_values(image: np.ndarray) -> np.ndarray:
@@ -137,3 +126,67 @@ def normalize_pixel_values(image: np.ndarray) -> np.ndarray:
         np.ndarray: The normalized image tensor.
     """
     return image / 255.0
+
+
+def training_reshape_image(
+    X_train: np.ndarray, X_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Reshapes the dataset for training.
+
+    Args:
+        X_train (np.ndarray): Train data.
+        X_test (np.ndarray): Test data.
+        y_train (np.ndarray): Train labels.
+        y_test (np.ndarray): Test labels.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Reshaped dataset.
+    """
+    X_train = X_train.reshape(
+        X_train.shape[0], image_dims[0], image_dims[1], 1
+    )
+    X_test = X_test.reshape(
+        X_test.shape[0], image_dims[0], image_dims[1], 1
+    )
+    return X_train, X_test, y_train, y_test
+
+
+def training_normalize_pixel_values(
+    X_train: np.ndarray, X_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Normalizes the pixel values in the dataset between 0 and 1.
+
+    Args:
+        X_train (np.ndarray): Train data.
+        X_test (np.ndarray): Test data.
+        y_train (np.ndarray): Train labels.
+        y_test (np.ndarray): Test labels.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: The normalized dataset.
+    """
+    return (
+        normalize_pixel_values(X_train),
+        normalize_pixel_values(X_test),
+        y_train,
+        y_test,
+    )
+
+
+def one_hot_encode_labels(
+    X_train: np.ndarray, X_test: np.ndarray, y_train: np.ndarray, y_test: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """One hot encodes the training and testing labels.
+
+    Args:
+        X_train (np.ndarray): Train data.
+        X_test (np.ndarray): Test data.
+        y_train (np.ndarray): Train labels.
+        y_test (np.ndarray): Test labels.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: The one hot encoded (labels) dataset.
+    """
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+    return X_train, X_test, y_train, y_test
